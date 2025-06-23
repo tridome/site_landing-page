@@ -1,0 +1,127 @@
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap");
+
+html, body {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 100%;
+    font: inherit;
+    vertical-align: baseline;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* Prevent scrollbars */
+}
+
+*, *:before, *:after {
+    box-sizing: inherit;
+}
+
+body {
+    background: #eecea3;
+    font-family: "Montserrat", sans-serif;
+    font-weight: 300;
+    font-size: 16pt;
+    line-height: 1.65;
+    color: #2b2d2d;
+}
+
+@media screen and (max-width: 1680px) {
+    body { font-size: 12pt; }
+}
+
+@media screen and (max-width: 736px) {
+    body { font-size: 11pt; }
+}
+
+@media screen and (max-width: 360px) {
+    body { font-size: 10pt; }
+}
+
+a {
+    transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out, border-bottom-color 0.2s ease-in-out;
+    border-bottom: dotted 1px rgba(255, 255, 255, 0.5);
+    text-decoration: none;
+    color: inherit;
+}
+
+a:hover {
+    border-bottom-color: transparent;
+}
+
+/* Map Container */
+#map-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    z-index: 2;
+    transition: opacity 0.325s ease-in-out;
+}
+
+/* Map Section */
+#map {
+    flex: 1 1 100%;
+    position: relative;
+    background-image: url("mstr/images/map.png");
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    padding-bottom: 70%; /* Maintain aspect ratio */
+    height: 0;
+}
+
+/* Map Buttons */
+.map-button {
+    display: block;
+    position: absolute;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background-color: #c91c49cc;
+    border: solid 1px #eae2de;
+    background-size: 15%;
+    background-position: center;
+    background-repeat: no-repeat;
+    transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    z-index: 3;
+}
+
+.map-button[data-symbol="mstr/images/info.png"] {
+    background-image: url("mstr/images/info.png");
+}
+
+.map-button:hover {
+    background-color: #eae2de83;
+    box-shadow: 0 0 0 1px #eae2de;
+}
+
+.map-button:active {
+    background-color: rgba(255, 255, 255, 0.175);
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 736px) {
+    #map-container {
+        flex-direction: column;
+    }
+
+    #map {
+        padding-bottom: 100%; /* Adjust aspect ratio for mobile */
+    }
+
+    .map-button {
+        width: 2.5rem;
+        height: 2.5rem;
+        background-size: 10%;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .map-button {
+        width: 2rem;
+        height: 2rem;
+        background-size: 5%;
+    }
+}
