@@ -1,127 +1,256 @@
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap");
-
-html, body {
+/* Reset and basic setup */
+* {
     margin: 0;
     padding: 0;
-    border: 0;
-    font-size: 100%;
-    font: inherit;
-    vertical-align: baseline;
     box-sizing: border-box;
-    width: 100%;
-    height: 100%;
-    overflow: hidden; /* Prevent scrollbars */
 }
 
-*, *:before, *:after {
-    box-sizing: inherit;
+html, body {
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden;
 }
 
 body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
     background: #eecea3;
     font-family: "Montserrat", sans-serif;
-    font-weight: 300;
-    font-size: 16pt;
-    line-height: 1.65;
-    color: #2b2d2d;
 }
 
-@media screen and (max-width: 1680px) {
-    body { font-size: 12pt; }
-}
-
-@media screen and (max-width: 736px) {
-    body { font-size: 11pt; }
-}
-
-@media screen and (max-width: 360px) {
-    body { font-size: 10pt; }
-}
-
-a {
-    transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out, border-bottom-color 0.2s ease-in-out;
-    border-bottom: dotted 1px rgba(255, 255, 255, 0.5);
-    text-decoration: none;
-    color: inherit;
-}
-
-a:hover {
-    border-bottom-color: transparent;
-}
-
-/* Map Container */
-#map-container {
-    display: flex;
-    flex-direction: row;
+/* BG */
+#bg {
+    -moz-transform: scale(1.0);
+    -webkit-transform: scale(1.0);
+    -ms-transform: scale(1.0);
+    transform: scale(1.0);
+    -webkit-backface-visibility: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
-    height: 100%;
-    margin: 0;
-    z-index: 2;
-    transition: opacity 0.325s ease-in-out;
+    height: 100vh;
+    z-index: 1;
 }
 
-/* Map Section */
-#map {
-    flex: 1 1 100%;
-    position: relative;
-    background-image: url("mstr/images/map.png");
-    background-size: contain;
-    background-position: center;
-    background-repeat: no-repeat;
-    padding-bottom: 70%; /* Maintain aspect ratio */
-    height: 0;
-}
-
-/* Map Buttons */
-.map-button {
+#bg:before, #bg:after {
+    content: '';
     display: block;
     position: absolute;
-    width: 3rem;
-    height: 3rem;
-    border-radius: 50%;
-    background-color: #c91c49cc;
-    border: solid 1px #eae2de;
-    background-size: 15%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+#bg:before {
+    -moz-transition: background-color 2.5s ease-in-out;
+    -webkit-transition: background-color 2.5s ease-in-out;
+    -ms-transition: background-color 2.5s ease-in-out;
+    transition: background-color 2.5s ease-in-out;
+    -moz-transition-delay: 0.75s;
+    -webkit-transition-delay: 0.75s;
+    -ms-transition-delay: 0.75s;
+    transition-delay: 0.75s;
+    background-image: linear-gradient(to top, rgba(19, 21, 25, 0.5), rgba(19, 21, 25, 0.5)), url("../../images/overlay.png");
+    background-size: auto, 256px 256px;
+    background-position: center, center;
+    background-repeat: no-repeat, repeat;
+    z-index: 1;
+}
+
+#bg:after {
+    -moz-transform: scale(1.125);
+    -webkit-transform: scale(1.125);
+    -ms-transform: scale(1.125);
+    transform: scale(1.125);
+    -moz-transition: -moz-transform 0.325s ease-in-out, -moz-filter 0.325s ease-in-out;
+    -webkit-transition: -webkit-transform 0.325s ease-in-out, -webkit-filter 0.325s ease-in-out;
+    -ms-transition: -ms-transform 0.325s ease-in-out, -ms-filter 0.325s ease-in-out;
+    transition: transform 0.325s ease-in-out, filter 0.325s ease-in-out;
+    background-image: url("../../images/map.png");
     background-position: center;
+    background-size: cover;
     background-repeat: no-repeat;
-    transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    z-index: 0;
+}
+
+body.is-article-visible #bg:after {
+    -moz-transform: scale(1.0825);
+    -webkit-transform: scale(1.0825);
+    -ms-transform: scale(1.0825);
+    transform: scale(1.0825);
+    -moz-filter: blur(0.2rem);
+    -webkit-filter: blur(0.2rem);
+    -ms-filter: blur(0.2rem);
+    filter: blur(0.2rem);
+}
+
+body.is-preload #bg:before {
+    background-color: #000000;
+}
+
+/* Map Container - Full width, centered */
+#map-container {
+    position: relative;
+    width: 100%;
+    max-width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     z-index: 3;
 }
 
-.map-button[data-symbol="mstr/images/info.png"] {
-    background-image: url("mstr/images/info.png");
+/* Map - Responsive image that maintains aspect ratio */
+#map {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 75.58%; /* Adjust based on your image aspect ratio */
+    background-image: url("../../images/map.png");
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    max-width: 100%;
+    max-height: 100vh;
+}
+
+/* Alternative if you want the image to fill the viewport height instead */
+#map.fill-height {
+    padding-bottom: 0;
+    height: 100vh;
+    background-size: contain;
+}
+
+/* Map Button styled like info-hotspot */
+.map-button {
+    position: absolute; /* Essential for positioning on map */
+    line-height: 1.2em;
+    opacity: 0.9;
+    -webkit-transition: opacity 0.2s 0.2s;
+    transition: opacity 0.2s 0.2s;
+    overflow: visible; /* Allow title to extend beyond button */
 }
 
 .map-button:hover {
-    background-color: #eae2de83;
-    box-shadow: 0 0 0 1px #eae2de;
+    opacity: 1;
+    -webkit-transition: opacity 0.2s;
+    transition: opacity 0.2s;
 }
 
-.map-button:active {
-    background-color: rgba(255, 255, 255, 0.175);
+.map-button.visible {
+    opacity: 1;
 }
 
-/* Responsive adjustments */
-@media screen and (max-width: 736px) {
-    #map-container {
-        flex-direction: column;
-    }
+/* Map Button Header - circular button that expands */
+.map-button .map-button-header {
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    background-color: #c91c49cc;
+    border: solid 1px #eae2de;
+    cursor: pointer;
+    -webkit-transition: width 0.3s ease-in-out 0.5s,
+                        border-radius 0.3s ease-in-out 0.5s;
+    transition: width 0.3s ease-in-out 0.5s,
+                border-radius 0.3s ease-in-out 0.5s;
+}
 
-    #map {
-        padding-bottom: 100%; /* Adjust aspect ratio for mobile */
-    }
+.map-button:hover .map-button-header {
+    width: 260px;
+    border-radius: 5px;
+    -webkit-transition: width 0.3s ease-in-out, border-radius 0.3s ease-in-out;
+    transition: width 0.3s ease-in-out, border-radius 0.3s ease-in-out;
+}
 
-    .map-button {
-        width: 2.5rem;
-        height: 2.5rem;
-        background-size: 10%;
+/* Icon wrapper inside button */
+.map-button .map-button-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.map-button .map-button-icon {
+    height: 60%;
+    background-image: url("../../images/info.png");
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    width: 60%;
+}
+
+/* Title wrapper that slides in */
+.map-button .map-button-title-wrapper {
+    position: absolute;
+    left: 40px;
+    top: 0;
+    width: 0;
+    height: 40px;
+    padding: 0;
+    overflow: hidden;
+    -webkit-transition: width 0s 0.4s,
+                        padding 0s 0.4s;
+    transition: width 0s 0.4s,
+                padding 0s 0.4s;
+}
+
+.map-button:hover .map-button-title-wrapper {
+    width: 220px;
+    padding: 0 5px;
+    -webkit-transition: width 0s 0.4s,
+                        padding 0s 0.4s;
+    transition: width 0s 0.4s,
+                padding 0s 0.4s;
+}
+
+.map-button .map-button-title-wrapper:before {
+    content: '';
+    display: inline-block;
+    vertical-align: middle;
+    height: 100%;
+}
+
+.map-button .map-button-title {
+    display: inline-block;
+    vertical-align: middle;
+    -moz-user-select: text;
+    -webkit-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+    text-transform: uppercase;
+    letter-spacing: 0.2rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #ffffff;
+}
+
+/* Responsive adjustments for mobile */
+@media screen and (max-width: 768px) {
+    .map-button .map-button-header {
+        width: 50px;
+        height: 50px;
+        border-radius: 25px;
+    }
+    
+    .map-button .map-button-icon-wrapper {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .map-button .map-button-title-wrapper {
+        left: 50px;
+        height: 50px;
+        font-size: 0.9rem;
     }
 }
 
 @media screen and (max-width: 480px) {
-    .map-button {
-        width: 2rem;
-        height: 2rem;
-        background-size: 5%;
+    .map-button .map-button-title {
+        font-size: 0.8rem;
     }
 }
