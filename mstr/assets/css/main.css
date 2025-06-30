@@ -133,6 +133,27 @@ body.is-preload #bg:before {
     -webkit-transition: opacity 0.2s 0.2s;
     transition: opacity 0.2s 0.2s;
     overflow: visible; /* Allow title to extend beyond button */
+    color: inherit;
+    text-decoration: none;
+}
+
+/* Link styling overrides */
+.map-button a,
+.map-button a:link,
+.map-button a:visited,
+.map-button a:hover,
+.map-button a:active {
+    text-decoration: none !important;
+    color: inherit !important;
+    border: none !important;
+    outline: none !important;
+}
+
+/* Ensure the entire button is clickable if wrapped in a link */
+.map-button a {
+    display: block;
+    width: 100%;
+    height: 100%;
 }
 
 .map-button:hover {
@@ -153,10 +174,8 @@ body.is-preload #bg:before {
     background-color: #c91c49cc;
     border: solid 1px #eae2de;
     cursor: pointer;
-    -webkit-transition: width 0.3s ease-in-out 0.5s,
-                        border-radius 0.3s ease-in-out 0.5s;
-    transition: width 0.3s ease-in-out 0.5s,
-                border-radius 0.3s ease-in-out 0.5s;
+    -webkit-transition: width 0.3s ease-in-out 0.5s, border-radius 0.3s ease-in-out 0.5s;
+    transition: width 0.3s ease-in-out 0.5s, border-radius 0.3s ease-in-out 0.5s;
 }
 
 .map-button:hover .map-button-header {
@@ -193,19 +212,15 @@ body.is-preload #bg:before {
     height: 40px;
     padding: 0;
     overflow: hidden;
-    -webkit-transition: width 0s 0.4s,
-                        padding 0s 0.4s;
-    transition: width 0s 0.4s,
-                padding 0s 0.4s;
+    -webkit-transition: width 0s 0.4s, padding 0s 0.4s;
+    transition: width 0s 0.4s, padding 0s 0.4s;
 }
 
 .map-button:hover .map-button-title-wrapper {
     width: 220px;
     padding: 0 5px;
-    -webkit-transition: width 0s 0.4s,
-                        padding 0s 0.4s;
-    transition: width 0s 0.4s,
-                padding 0s 0.4s;
+    -webkit-transition: width 0s 0.4s, padding 0s 0.4s;
+    transition: width 0s 0.4s, padding 0s 0.4s;
 }
 
 .map-button .map-button-title-wrapper:before {
@@ -227,6 +242,7 @@ body.is-preload #bg:before {
     font-size: 1rem;
     font-weight: 500;
     color: #ffffff;
+    text-decoration: none; /* Remove underline */
 }
 
 /* Responsive adjustments for mobile */
