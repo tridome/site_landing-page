@@ -96,24 +96,27 @@ body.is-preload #bg:before {
 #map-container {
     position: relative;
     width: 100%;
+    height: 100vh; /* Give the container a height to work with */
     display: flex;
     flex-direction: row;
     justify-content: center;
     align-items: center;
     z-index: 3;
     margin: auto;
+    padding: 1px; /* Add some breathing room */
 }
 
 /* Map - Responsive image that maintains aspect ratio */
 #map {
     position: relative;
     width: 100%;
-    height: 0;
-    padding-bottom: 75.58%; /* Adjust based on your image aspect ratio */
+    height: 100%;
     background-image: url("../../images/map.png");
-    background-size: contain;
+    background-size: contain; /* This is key - it will scale the image to fit within the container */
     background-position: center;
     background-repeat: no-repeat;
+    max-width: calc(100vw - 2px); /* Account for padding */
+    max-height: calc(100vh - 2px); /* Account for padding */
 }
 
 /* Map Button styled like info-hotspot */
@@ -126,6 +129,8 @@ body.is-preload #bg:before {
     overflow: visible; /* Allow title to extend beyond button */
     color: inherit;
     text-decoration: none;
+
+    transform-origin: center center;
 }
 
 /* Link styling overrides */
