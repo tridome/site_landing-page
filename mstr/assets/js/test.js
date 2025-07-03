@@ -5,19 +5,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const mapButtons = document.querySelectorAll('.map-button-header');
     mapButtons.forEach(button => {
         button.addEventListener('click', (e) => {
-            e.preventDefault();
             const hotspot = button.parentElement;
             console.log('Button clicked:', hotspot);
-            document.querySelectorAll('.map-button').forEach(h => h.classList.remove('visible'));
-            hotspot.classList.add('visible');
+            const link = hotspot.querySelector('.map-button-title a');
+            if (link && link.href) {
+                window.location.href = link.href; // Navigate to the link on click
+            } else {
+                console.warn('No valid link found for button:', hotspot);
+            }
         });
     });
 
-    // ====== MAP BUTTON SCALING FUNCTIONALITY ======
-    class MapButtonScaler {
+    // ====== MAP BUTTON POSITIONING FUNCTIONALITY ======
+    class MapButtonPositioner {
         constructor() {
             this.mapElement = null;
-            this.mapContainer = null;
             this.mapButtons = [];
             this.originalButtonData = new Map();
             this.resizeObserver = null;
@@ -27,27 +29,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
         init() {
             this.mapElement = document.getElementById('map');
-            this.mapContainer = document.getElementById('map-container');
-            if (!this.mapElement || !this.mapContainer) {
-                console.warn('Map or container element not found for scaling');
+            if (!this.mapElement) {
+                console.warn('Map element not found for positioning');
                 return;
             }
 
             this.mapButtons = Array.from(document.querySelectorAll('.map-button'));
             if (this.mapButtons.length === 0) {
-                console.warn('No map buttons found for scaling');
+                console.warn('No map buttons found for positioning');
                 return;
             }
 
-            console.log(`Found ${this.mapButtons.length} map buttons for scaling`);
+            console.log(`Found ${this.mapButtons.length} map buttons for positioning`);
             
             setTimeout(() => {
                 this.storeOriginalButtonData();
                 this.setupResizeObserver();
-                this.scaleButtons();
+                this.positionButtons();
                 this.isInitialized = true;
-                console.log('Map button scaler initialized and scaled');
-            }, 100);
+                console.log('Map button positioner initialized');
+            }, 500); // Increased delay to ensure map image loads
         }
 
         storeOriginalButtonData() {
@@ -71,10 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const buttonData = {
                     leftPercent: leftPercent || 0,
-                    topPercent: topPercent || 0,
-                    width: parseFloat(computedStyle.width) || 40,
-                    height: parseFloat(computedStyle.height) || 40,
-                    fontSize: parseFloat(computedStyle.fontSize) || 16,
+                    topPercent: topPercent || 0
                 };
 
                 console.log(`Button ${index} data:`, buttonData);
@@ -82,12 +80,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        async calculateMapScale() {
-            if (!this.mapElement || !this.mapContainer) {
-                return { scale: 1, offsetX: 0, offsetY: 0, renderedWidth: 0, renderedHeight: 0 };
+        async calculateMapPosition() {
+            if (!this.mapElement) {
+                return { offsetX: 0, offsetY: 0, renderedWidth: 0, renderedHeight: 0 };
             }
 
-            const containerRect = this.mapContainer.getBoundingClientRect();
+            const mapRect = this.mapElement.getBoundingClientRect();
             
             return new Promise((resolve) => {
                 const img = new Image();
@@ -97,22 +95,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     const naturalAspectRatio = naturalWidth / naturalHeight;
                     
                     let renderedWidth, renderedHeight;
-                    const containerAspectRatio = containerRect.width / containerRect.height;
+                    const containerAspectRatio = mapRect.width / mapRect.height;
                     
                     if (containerAspectRatio > naturalAspectRatio) {
-                        renderedHeight = containerRect.height;
+                        renderedHeight = mapRect.height;
                         renderedWidth = renderedHeight * naturalAspectRatio;
                     } else {
-                        renderedWidth = containerRect.width;
+                        renderedWidth = mapRect.width;
                         renderedHeight = renderedWidth / naturalAspectRatio;
                     }
                     
-                    const scale = Math.min(renderedWidth / naturalWidth, renderedHeight / naturalHeight);
-                    const offsetX = (containerRect.width - renderedWidth) / 2;
-                    const offsetY = (containerRect.height - renderedHeight) / 2;
+                    const offsetX = (mapRect.width - renderedWidth) / 2;
+                    const offsetY = (mapRect.height - renderedHeight) / 2;
                     
                     resolve({
-                        scale: scale,
                         offsetX: offsetX,
                         offsetY: offsetY,
                         renderedWidth: renderedWidth,
@@ -121,88 +117,61 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 
                 img.onerror = () => {
-                    console.warn('Could not load map image for scaling calculation');
+                    console.warn('Could not load map image, using fallback dimensions');
                     resolve({
-                        scale: 1,
                         offsetX: 0,
                         offsetY: 0,
-                        renderedWidth: containerRect.width,
-                        renderedHeight: containerRect.height
+                        renderedWidth: mapRect.width,
+                        renderedHeight: mapRect.height
                     });
                 };
                 
                 const mapStyle = window.getComputedStyle(this.mapElement);
                 const urlMatch = mapStyle.backgroundImage.match(/url\(['"]?([^'"]+)['"]?\)/);
                 img.src = urlMatch ? urlMatch[1] : '';
+                if (!urlMatch) {
+                    console.warn('No background image URL found for #map, using fallback dimensions');
+                    resolve({
+                        offsetX: 0,
+                        offsetY: 0,
+                        renderedWidth: mapRect.width,
+                        renderedHeight: mapRect.height
+                    });
+                }
             });
         }
 
-        async scaleButtons() {
+        async positionButtons() {
             if (!this.isInitialized) return;
             
             try {
-                const scaleData = await this.calculateMapScale();
-                const { scale, offsetX, offsetY, renderedWidth, renderedHeight } = scaleData;
+                const positionData = await this.calculateMapPosition();
+                const { offsetX, offsetY, renderedWidth, renderedHeight } = positionData;
                 
-                console.log('Scale data:', scaleData);
+                console.log('Position data:', positionData);
                 
                 this.mapButtons.forEach((button, index) => {
                     const originalData = this.originalButtonData.get(button);
                     if (!originalData) return;
                     
-                    button.classList.add('scaling');
+                    button.classList.add('positioning');
                     
-                    // Calculate new position based on the rendered map size
+                    // Calculate new position based on the rendered map image size
                     const newLeft = (originalData.leftPercent / 100) * renderedWidth + offsetX;
                     const newTop = (originalData.topPercent / 100) * renderedHeight + offsetY;
                     
-                    // Calculate scaled dimensions
-                    const newWidth = originalData.width * scale;
-                    const newHeight = originalData.height * scale;
-                    const newFontSize = originalData.fontSize * scale;
-                    const newHeaderWidth = originalData.headerWidth * scale;
-                    const newHeaderHeight = originalData.headerHeight * scale;
-                    const newIconWrapperWidth = originalData.iconWrapperWidth * scale;
-                    const newIconWrapperHeight = originalData.iconWrapperHeight * scale;
-                    const newTitleWrapperLeft = originalData.titleWrapperLeft * scale;
-                    const newTitleWrapperHeight = originalData.titleWrapperHeight * scale;
-                    
-                    // Apply styles to button
+                    // Apply position only, let CSS handle sizing
                     button.style.left = `${newLeft}px`;
                     button.style.top = `${newTop}px`;
-                    button.style.width = `${newWidth}px`;
-                    button.style.height = `${newHeight}px`;
-                    button.style.fontSize = `${newFontSize}px`;
                     
-                    // Update child elements
-                    const header = button.querySelector('.map-button-header');
-                    const iconWrapper = button.querySelector('.map-button-icon-wrapper');
-                    const titleWrapper = button.querySelector('.map-button-title-wrapper');
-                    
-                    if (header) {
-                        header.style.width = `${newHeaderWidth}px`;
-                        header.style.height = `${newHeaderHeight}px`;
-                        header.style.borderRadius = `${newHeaderHeight / 2}px`;
-                    }
-                    
-                    if (iconWrapper) {
-                        iconWrapper.style.width = `${newIconWrapperWidth}px`;
-                        iconWrapper.style.height = `${newIconWrapperHeight}px`;
-                    }
-                    
-                    if (titleWrapper) {
-                        titleWrapper.style.left = `${newTitleWrapperLeft}px`;
-                        titleWrapper.style.height = `${newTitleWrapperHeight}px`;
-                    }
-                    
-                    console.log(`Button ${index} scaled - Left: ${newLeft}px, Top: ${newTop}px, Scale: ${scale}`);
+                    console.log(`Button ${index} positioned - Left: ${newLeft}px, Top: ${newTop}px`);
                     
                     setTimeout(() => {
-                        button.classList.remove('scaling');
+                        button.classList.remove('positioning');
                     }, 50);
                 });
             } catch (error) {
-                console.error('Error scaling buttons:', error);
+                console.error('Error positioning buttons:', error);
             }
         }
 
@@ -211,16 +180,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.resizeObserver = new ResizeObserver(() => {
                     clearTimeout(this.resizeTimeout);
                     this.resizeTimeout = setTimeout(() => {
-                        this.scaleButtons();
+                        this.storeOriginalButtonData();
+                        this.positionButtons();
                     }, 16);
                 });
                 
-                this.resizeObserver.observe(this.mapContainer);
+                this.resizeObserver.observe(this.mapElement);
             } else {
                 window.addEventListener('resize', () => {
                     clearTimeout(this.resizeTimeout);
                     this.resizeTimeout = setTimeout(() => {
-                        this.scaleButtons();
+                        this.storeOriginalButtonData();
+                        this.positionButtons();
                     }, 100);
                 });
             }
@@ -233,29 +204,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const computedStyle = window.getComputedStyle(buttonElement);
                 const buttonData = {
                     leftPercent: computedStyle.left.includes('%') ? parseFloat(computedStyle.left) : 0,
-                    topPercent: computedStyle.top.includes('%') ? parseFloat(computedStyle.top) : 0,
-                    width: parseFloat(computedStyle.width) || 40,
-                    height: parseFloat(computedStyle.height) || 40,
-                    fontSize: parseFloat(computedStyle.fontSize) || 16,
-                    headerWidth: 400,
-                    headerHeight: 40,
-                    iconWrapperWidth: 40,
-                    iconWrapperHeight: 40,
-                    titleWrapperLeft: 40,
-                    titleWrapperHeight: 40
+                    topPercent: computedStyle.top.includes('%') ? parseFloat(computedStyle.top) : 0
                 };
 
-                if (window.innerWidth <= 768) {
-                    buttonData.headerWidth = 50;
-                    buttonData.headerHeight = 50;
-                    buttonData.iconWrapperWidth = 50;
-                    buttonData.iconWrapperHeight = 50;
-                    buttonData.titleWrapperLeft = 50;
-                    buttonData.titleWrapperHeight = 50;
-                }
-
                 this.originalButtonData.set(buttonElement, buttonData);
-                this.scaleButtons();
+                this.positionButtons();
             }
         }
 
@@ -269,6 +222,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    const mapButtonScaler = new MapButtonScaler();
-    window.mapButtonScaler = mapButtonScaler;
+    const mapButtonPositioner = new MapButtonPositioner();
+    window.mapButtonPositioner = mapButtonPositioner;
 });
