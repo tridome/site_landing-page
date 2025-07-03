@@ -1,0 +1,263 @@
+/* Reset and basic setup */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #eecea3;
+    font-family: "Montserrat", sans-serif;
+}
+
+/* BG */
+#bg {
+    transform: scale(1.0);
+    -webkit-backface-visibility: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    z-index: 1;
+}
+
+#bg:before, #bg:after {
+    content: '';
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+#bg:before {
+    transition: background-color 2.5s ease-in-out;
+    transition-delay: 0.75s;
+    background-image: linear-gradient(to top, rgba(19, 21, 25, 0.5), rgba(19, 21, 25, 0.5)), url("../../images/overlay.png");
+    background-size: auto, 256px 256px;
+    background-position: center, center;
+    background-repeat: no-repeat, repeat;
+    z-index: 1;
+}
+
+#bg:after {
+    transform: scale(1.125);
+    transition: transform 0.325s ease-in-out, filter 0.325s ease-in-out;
+    background-image: url("../../images/map.png");
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    z-index: 0;
+}
+
+body.is-article-visible #bg:after {
+    transform: scale(1.0825);
+    filter: blur(0.2rem);
+}
+
+body.is-preload #bg:before {
+    background-color: #000000;
+}
+
+/* Map Container - Full width, centered */
+#map-container {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 3;
+    margin: auto;
+    padding: 1px;
+}
+
+/* Map - Responsive image that maintains aspect ratio */
+#map {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background-image: url("../../images/map.png");
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    max-width: calc(100vw - 2px);
+    max-height: calc(100vh - 2px);
+}
+
+/* Map Button styled like info-hotspot */
+.map-button {
+    position: absolute;
+    line-height: 1.2em;
+    opacity: 0.9;
+    transition: opacity 0.2s 0.2s, transform 0.3s ease-in-out;
+    overflow: visible;
+    color: inherit;
+    text-decoration: none;
+    z-index: 10;
+    transform-origin: center center;
+    cursor: pointer;
+}
+
+/* Disable transitions during scaling */
+.map-button.scaling {
+    transition: none !important;
+}
+
+/* Link styling overrides */
+.map-button a,
+.map-button a:link,
+.map-button a:visited,
+.map-button a:hover,
+.map-button a:active {
+    text-decoration: none !important;
+    color: inherit !important;
+    border: none !important;
+    outline: none !important;
+}
+
+/* Ensure the entire button is clickable if wrapped in a link */
+.map-button a {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.map-button:hover {
+    opacity: 1;
+    transition: opacity 0.2s;
+}
+
+.map-button.visible {
+    opacity: 1;
+}
+
+/* Map Button Header - circular button that expands */
+.map-button .map-button-header {
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    background-color: #c91c49cc;
+    border: solid 1px #eae2de;
+    cursor: pointer;
+    transition: width 0.3s ease-in-out 0.5s, border-radius 0.3s ease-in-out 0.5s;
+}
+
+.map-button:hover .map-button-header {
+    width: 260px;
+    border-radius: 5px;
+    transition: width 0.3s ease-in-out, border-radius 0.3s ease-in-out;
+}
+
+/* Icon wrapper inside button */
+.map-button .map-button-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+}
+
+.map-button .map-button-icon {
+    height: 60%;
+    background-image: url("../../images/info.png");
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    width: 60%;
+}
+
+/* Title wrapper that slides in */
+.map-button .map-button-title-wrapper {
+    position: absolute;
+    left: 40px;
+    top: 0;
+    width: 0;
+    height: 40px;
+    padding: 0;
+    overflow: hidden;
+    transition: width 0.3s ease-in-out 0.4s, padding 0.3s ease-in-out 0.4s;
+}
+
+.map-button:hover .map-button-title-wrapper {
+    width: 220px;
+    padding: 0 5px;
+    transition: width 0.3s ease-in-out, padding 0.3s ease-in-out;
+}
+
+.map-button .map-button-title-wrapper:before {
+    content: '';
+    display: inline-block;
+    vertical-align: middle;
+    height: 100%;
+}
+
+.map-button .map-button-title {
+    display: inline-block;
+    vertical-align: middle;
+    user-select: text;
+    text-transform: uppercase;
+    letter-spacing: 0.2rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #ffffff;
+    text-decoration: none;
+}
+
+/* Responsive adjustments for mobile */
+@media screen and (max-width: 768px) {
+    .map-button .map-button-header {
+        width: 40px;
+        height: 40px;
+        border-radius: 20px;
+    }
+    
+    .map-button .map-button-icon-wrapper {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .map-button .map-button-title-wrapper {
+        left: 40px;
+        height: 40px;
+    }
+    
+    .map-button .map-button-title {
+        font-size: 0.9rem;
+    }
+    
+    .map-button:hover .map-button-header {
+        width: 200px;
+    }
+    
+    .map-button:hover .map-button-title-wrapper {
+        width: 150px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .map-button .map-button-title {
+        font-size: 0.8rem;
+    }
+    
+    .map-button:hover .map-button-header {
+        width: 180px;
+    }
+    
+    .map-button:hover .map-button-title-wrapper {
+        width: 130px;
+    }
+}
