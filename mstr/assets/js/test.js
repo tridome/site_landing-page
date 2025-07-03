@@ -9,21 +9,23 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Button clicked:', hotspot);
             const link = hotspot.querySelector('.map-button-title a');
             if (link && link.href) {
-                window.location.href = link.href; // Navigate to the link on click
+                window.location.href = link.href;
             } else {
                 console.warn('No valid link found for button:', hotspot);
             }
         });
     });
 
-    // ====== MAP BUTTON POSITIONING FUNCTIONALITY ======
+    // ====== IMPROVED MAP BUTTON POSITIONING FUNCTIONALITY ======
     class MapButtonPositioner {
         constructor() {
             this.mapElement = null;
             this.mapButtons = [];
-            this.originalButtonData = new Map();
+            this.buttonPositions = new Map(); // Store normalized positions (0-1)
             this.resizeObserver = null;
             this.isInitialized = false;
+            this.imageCache = new Map();
+            this.debounceTimer = null;
             this.init();
         }
 
@@ -42,183 +44,285 @@ document.addEventListener('DOMContentLoaded', () => {
 
             console.log(`Found ${this.mapButtons.length} map buttons for positioning`);
             
-            setTimeout(() => {
-                this.storeOriginalButtonData();
+            // Wait for map image to load, then initialize
+            this.waitForMapImage().then(() => {
+                this.extractButtonPositions();
                 this.setupResizeObserver();
                 this.positionButtons();
                 this.isInitialized = true;
                 console.log('Map button positioner initialized');
-            }, 500); // Increased delay to ensure map image loads
-        }
-
-        storeOriginalButtonData() {
-            this.mapButtons.forEach((button, index) => {
-                const computedStyle = window.getComputedStyle(button);
-                const inlineStyle = button.style;
-                
-                let leftPercent = null, topPercent = null;
-                
-                if (inlineStyle.left && inlineStyle.left.includes('%')) {
-                    leftPercent = parseFloat(inlineStyle.left);
-                } else if (computedStyle.left && computedStyle.left.includes('%')) {
-                    leftPercent = parseFloat(computedStyle.left);
-                }
-                
-                if (inlineStyle.top && inlineStyle.top.includes('%')) {
-                    topPercent = parseFloat(inlineStyle.top);
-                } else if (computedStyle.top && computedStyle.top.includes('%')) {
-                    topPercent = parseFloat(computedStyle.top);
-                }
-                
-                const buttonData = {
-                    leftPercent: leftPercent || 0,
-                    topPercent: topPercent || 0
-                };
-
-                console.log(`Button ${index} data:`, buttonData);
-                this.originalButtonData.set(button, buttonData);
+            }).catch(error => {
+                console.error('Failed to initialize map positioning:', error);
             });
         }
 
-        async calculateMapPosition() {
-            if (!this.mapElement) {
-                return { offsetX: 0, offsetY: 0, renderedWidth: 0, renderedHeight: 0 };
+        async waitForMapImage() {
+            const mapStyle = window.getComputedStyle(this.mapElement);
+            const urlMatch = mapStyle.backgroundImage.match(/url\(['"]?([^'"]+)['"]?\)/);
+            
+            if (!urlMatch) {
+                console.warn('No background image URL found for #map');
+                return Promise.resolve();
             }
 
-            const mapRect = this.mapElement.getBoundingClientRect();
+            const imageUrl = urlMatch[1];
             
-            return new Promise((resolve) => {
+            // Check cache first
+            if (this.imageCache.has(imageUrl)) {
+                return this.imageCache.get(imageUrl);
+            }
+
+            // Load image and cache the promise
+            const imagePromise = new Promise((resolve, reject) => {
                 const img = new Image();
                 img.onload = () => {
-                    const naturalWidth = img.naturalWidth;
-                    const naturalHeight = img.naturalHeight;
-                    const naturalAspectRatio = naturalWidth / naturalHeight;
-                    
-                    let renderedWidth, renderedHeight;
-                    const containerAspectRatio = mapRect.width / mapRect.height;
-                    
-                    if (containerAspectRatio > naturalAspectRatio) {
-                        renderedHeight = mapRect.height;
-                        renderedWidth = renderedHeight * naturalAspectRatio;
-                    } else {
-                        renderedWidth = mapRect.width;
-                        renderedHeight = renderedWidth / naturalAspectRatio;
-                    }
-                    
-                    const offsetX = (mapRect.width - renderedWidth) / 2;
-                    const offsetY = (mapRect.height - renderedHeight) / 2;
-                    
+                    console.log('Map image loaded successfully');
                     resolve({
-                        offsetX: offsetX,
-                        offsetY: offsetY,
-                        renderedWidth: renderedWidth,
-                        renderedHeight: renderedHeight
+                        naturalWidth: img.naturalWidth,
+                        naturalHeight: img.naturalHeight,
+                        aspectRatio: img.naturalWidth / img.naturalHeight
                     });
                 };
-                
                 img.onerror = () => {
-                    console.warn('Could not load map image, using fallback dimensions');
-                    resolve({
-                        offsetX: 0,
-                        offsetY: 0,
-                        renderedWidth: mapRect.width,
-                        renderedHeight: mapRect.height
-                    });
+                    console.warn('Could not load map image');
+                    reject(new Error('Failed to load map image'));
                 };
-                
-                const mapStyle = window.getComputedStyle(this.mapElement);
-                const urlMatch = mapStyle.backgroundImage.match(/url\(['"]?([^'"]+)['"]?\)/);
-                img.src = urlMatch ? urlMatch[1] : '';
-                if (!urlMatch) {
-                    console.warn('No background image URL found for #map, using fallback dimensions');
-                    resolve({
-                        offsetX: 0,
-                        offsetY: 0,
-                        renderedWidth: mapRect.width,
-                        renderedHeight: mapRect.height
-                    });
-                }
+                img.src = imageUrl;
             });
+
+            this.imageCache.set(imageUrl, imagePromise);
+            return imagePromise;
+        }
+
+        extractButtonPositions() {
+            this.mapButtons.forEach((button, index) => {
+                // Try to extract position from data attributes first (most reliable)
+                const leftPercent = this.getPositionValue(button, 'left');
+                const topPercent = this.getPositionValue(button, 'top');
+                
+                // Store as normalized coordinates (0-1 range)
+                const position = {
+                    x: leftPercent / 100,
+                    y: topPercent / 100,
+                    element: button
+                };
+
+                this.buttonPositions.set(button, position);
+                console.log(`Button ${index} position extracted: ${leftPercent}%, ${topPercent}%`);
+            });
+        }
+
+        getPositionValue(element, property) {
+            // Priority order: data attributes > inline styles > computed styles
+            const dataAttr = element.getAttribute(`data-${property}-percent`);
+            if (dataAttr !== null) {
+                return parseFloat(dataAttr);
+            }
+
+            const inlineStyle = element.style[property];
+            if (inlineStyle && inlineStyle.includes('%')) {
+                return parseFloat(inlineStyle);
+            }
+
+            const computedStyle = window.getComputedStyle(element)[property];
+            if (computedStyle && computedStyle.includes('%')) {
+                return parseFloat(computedStyle);
+            }
+
+            // Fallback: try to extract from CSS classes or default to 0
+            return 0;
+        }
+
+        async calculateMapBounds() {
+            try {
+                const imageData = await this.waitForMapImage();
+                const mapRect = this.mapElement.getBoundingClientRect();
+                
+                if (!imageData) {
+                    // Fallback if image data unavailable
+                    return {
+                        left: 0,
+                        top: 0,
+                        width: mapRect.width,
+                        height: mapRect.height
+                    };
+                }
+
+                const containerAspectRatio = mapRect.width / mapRect.height;
+                const imageAspectRatio = imageData.aspectRatio;
+                
+                let renderedWidth, renderedHeight, offsetX, offsetY;
+                
+                if (containerAspectRatio > imageAspectRatio) {
+                    // Container is wider than image - image is constrained by height
+                    renderedHeight = mapRect.height;
+                    renderedWidth = renderedHeight * imageAspectRatio;
+                    offsetX = (mapRect.width - renderedWidth) / 2;
+                    offsetY = 0;
+                } else {
+                    // Container is taller than image - image is constrained by width
+                    renderedWidth = mapRect.width;
+                    renderedHeight = renderedWidth / imageAspectRatio;
+                    offsetX = 0;
+                    offsetY = (mapRect.height - renderedHeight) / 2;
+                }
+                
+                return {
+                    left: offsetX,
+                    top: offsetY,
+                    width: renderedWidth,
+                    height: renderedHeight
+                };
+            } catch (error) {
+                console.error('Error calculating map bounds:', error);
+                const mapRect = this.mapElement.getBoundingClientRect();
+                return {
+                    left: 0,
+                    top: 0,
+                    width: mapRect.width,
+                    height: mapRect.height
+                };
+            }
         }
 
         async positionButtons() {
-            if (!this.isInitialized) return;
+            if (!this.isInitialized && this.buttonPositions.size === 0) return;
             
             try {
-                const positionData = await this.calculateMapPosition();
-                const { offsetX, offsetY, renderedWidth, renderedHeight } = positionData;
+                const mapBounds = await this.calculateMapBounds();
                 
-                console.log('Position data:', positionData);
-                
-                this.mapButtons.forEach((button, index) => {
-                    const originalData = this.originalButtonData.get(button);
-                    if (!originalData) return;
+                this.buttonPositions.forEach((position, button) => {
+                    // Calculate absolute position from normalized coordinates
+                    const absoluteX = mapBounds.left + (position.x * mapBounds.width);
+                    const absoluteY = mapBounds.top + (position.y * mapBounds.height);
                     
-                    button.classList.add('positioning');
+                    // Apply position using transform for better performance
+                    button.style.transform = `translate(${absoluteX}px, ${absoluteY}px)`;
                     
-                    // Calculate new position based on the rendered map image size
-                    const newLeft = (originalData.leftPercent / 100) * renderedWidth + offsetX;
-                    const newTop = (originalData.topPercent / 100) * renderedHeight + offsetY;
-                    
-                    // Apply position only, let CSS handle sizing
-                    button.style.left = `${newLeft}px`;
-                    button.style.top = `${newTop}px`;
-                    
-                    console.log(`Button ${index} positioned - Left: ${newLeft}px, Top: ${newTop}px`);
-                    
-                    setTimeout(() => {
-                        button.classList.remove('positioning');
-                    }, 50);
+                    // Clear any old positioning styles
+                    button.style.left = '';
+                    button.style.top = '';
                 });
+                
+                console.log('Buttons repositioned successfully');
             } catch (error) {
                 console.error('Error positioning buttons:', error);
             }
         }
 
         setupResizeObserver() {
+            const debouncedReposition = () => {
+                clearTimeout(this.debounceTimer);
+                this.debounceTimer = setTimeout(() => {
+                    this.positionButtons();
+                }, 16); // ~60fps
+            };
+
             if ('ResizeObserver' in window) {
-                this.resizeObserver = new ResizeObserver(() => {
-                    clearTimeout(this.resizeTimeout);
-                    this.resizeTimeout = setTimeout(() => {
-                        this.storeOriginalButtonData();
-                        this.positionButtons();
-                    }, 16);
-                });
-                
+                this.resizeObserver = new ResizeObserver(debouncedReposition);
                 this.resizeObserver.observe(this.mapElement);
+                
+                // Also observe the document body for viewport changes
+                this.resizeObserver.observe(document.body);
             } else {
-                window.addEventListener('resize', () => {
-                    clearTimeout(this.resizeTimeout);
-                    this.resizeTimeout = setTimeout(() => {
-                        this.storeOriginalButtonData();
-                        this.positionButtons();
-                    }, 100);
-                });
+                // Fallback for older browsers
+                window.addEventListener('resize', debouncedReposition);
+                window.addEventListener('orientationchange', debouncedReposition);
             }
         }
 
-        addButton(buttonElement) {
-            if (!this.mapButtons.includes(buttonElement)) {
-                this.mapButtons.push(buttonElement);
-                
-                const computedStyle = window.getComputedStyle(buttonElement);
-                const buttonData = {
-                    leftPercent: computedStyle.left.includes('%') ? parseFloat(computedStyle.left) : 0,
-                    topPercent: computedStyle.top.includes('%') ? parseFloat(computedStyle.top) : 0
-                };
+        // Public API methods
+        addButton(buttonElement, xPercent = 0, yPercent = 0) {
+            if (this.buttonPositions.has(buttonElement)) {
+                console.warn('Button already exists in positioner');
+                return;
+            }
 
-                this.originalButtonData.set(buttonElement, buttonData);
+            // Store position data as data attributes for persistence
+            buttonElement.setAttribute('data-left-percent', xPercent);
+            buttonElement.setAttribute('data-top-percent', yPercent);
+
+            const position = {
+                x: xPercent / 100,
+                y: yPercent / 100,
+                element: buttonElement
+            };
+
+            this.buttonPositions.set(buttonElement, position);
+            this.mapButtons.push(buttonElement);
+            
+            if (this.isInitialized) {
                 this.positionButtons();
             }
+        }
+
+        removeButton(buttonElement) {
+            if (this.buttonPositions.has(buttonElement)) {
+                this.buttonPositions.delete(buttonElement);
+                const index = this.mapButtons.indexOf(buttonElement);
+                if (index > -1) {
+                    this.mapButtons.splice(index, 1);
+                }
+                console.log('Button removed from positioner');
+            }
+        }
+
+        updateButtonPosition(buttonElement, xPercent, yPercent) {
+            if (!this.buttonPositions.has(buttonElement)) {
+                console.warn('Button not found in positioner');
+                return;
+            }
+
+            // Update data attributes
+            buttonElement.setAttribute('data-left-percent', xPercent);
+            buttonElement.setAttribute('data-top-percent', yPercent);
+
+            // Update stored position
+            const position = this.buttonPositions.get(buttonElement);
+            position.x = xPercent / 100;
+            position.y = yPercent / 100;
+
+            if (this.isInitialized) {
+                this.positionButtons();
+            }
+        }
+
+        // Get current button positions as percentages
+        getButtonPositions() {
+            const positions = new Map();
+            this.buttonPositions.forEach((position, button) => {
+                positions.set(button, {
+                    xPercent: position.x * 100,
+                    yPercent: position.y * 100
+                });
+            });
+            return positions;
+        }
+
+        // Force refresh (useful after dynamic content changes)
+        refresh() {
+            this.extractButtonPositions();
+            this.positionButtons();
         }
 
         destroy() {
             if (this.resizeObserver) {
                 this.resizeObserver.disconnect();
             }
-            this.originalButtonData.clear();
+            
+            clearTimeout(this.debounceTimer);
+            
+            // Clear transforms from buttons
+            this.buttonPositions.forEach((position, button) => {
+                button.style.transform = '';
+            });
+            
+            this.buttonPositions.clear();
             this.mapButtons = [];
+            this.imageCache.clear();
             this.isInitialized = false;
+            
+            console.log('Map button positioner destroyed');
         }
     }
 
