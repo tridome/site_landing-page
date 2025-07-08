@@ -161,6 +161,11 @@ body.is-preload #bg:before {
     transition: width 0.3s ease-in-out, border-radius 0.3s ease-in-out;
 }
 
+.map-button.blue {
+    --button-bg-color: #1e40afcc;
+    --button-border-color: #bfdbfe;
+}
+
 /* Icon wrapper inside button */
 .map-button .map-button-icon-wrapper {
     width: 40px;
@@ -197,6 +202,7 @@ body.is-preload #bg:before {
     padding: 0 5px;
     transition: width 0.3s ease-in-out, padding 0.3s ease-in-out;
 }
+
 
 .map-button .map-button-title-wrapper:before {
     content: '';
